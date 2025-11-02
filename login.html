@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Viz4Edu • Login</title>
+  <link rel="stylesheet" href="viz4edu.css" />
+</head>
+<body class="login-page">
+  <!-- LOGIN VIEW (no navbar) -->
+  <main id="loginCard" class="card" aria-label="Login card">
+    <div class="brand" aria-label="Viz4Edu brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <h1><a id="brandLink" href="#" class="brand-link" onclick="event.preventDefault()">Viz4Edu</a></h1>
+        <p class="sub">Login to continue</p>
+      </div>
+    </div>
+
+    <form id="loginForm" novalidate>
+      <!-- U-number field -->
+      <div class="row">
+        <label for="uid">U-number</label>
+        <input id="uid" class="input" name="uid" type="text" inputmode="numeric" autocomplete="off"
+               placeholder="U-number (e.g., U12345678)" aria-describedby="uidHelp" maxlength="9" />
+        <div id="uidHelp" class="sr-only">Enter an ID that starts with uppercase U followed by 8 digits.</div>
+      </div>
+
+      <!-- Role dropdown -->
+      <div class="row">
+        <label for="role">I'm a</label>
+        <select id="role" name="role">
+          <option value="" selected disabled>— select role —</option>
+          <option>Student</option>
+          <option>Teacher</option>
+        </select>
+      </div>
+
+      <!-- Submit button -->
+      <button id="submitBtn" class="btn" type="submit" disabled>Submit</button>
+
+      <!-- Live region for accessibility -->
+      <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+    </form>
+
+    <footer>
+      <small>By continuing, you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</small>
+    </footer>
+  </main>
+
+  <!-- Toast container -->
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script src="scripts/login.js"></script>
+</body>
+</html>

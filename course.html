@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Viz4Edu — Course</title>
+  <link rel="stylesheet" href="viz4edu.css" />
+</head>
+<body class="course-page">
+  <!-- TOP NAVBAR -->
+  <nav class="navbar" role="navigation" aria-label="Main">
+    <div class="nav-left">
+      <a href="dashboard-student.html" class="brand-link" id="brandHome" aria-label="Go to home">Viz4Edu</a>
+      <span class="role-chip" id="roleChip">Student</span>
+    </div>
+    <div class="nav-right">
+      <button class="avatar" type="button" aria-label="Account"><span class="avatar-initials">US</span></button>
+    </div>
+  </nav>
+
+  <!-- COURSE LAYOUT -->
+  <section class="course-shell">
+    <!-- Primary icon nav -->
+    <aside class="course-side primary" aria-label="Course sections">
+      <button class="side-icon active" data-pane="materials" title="Learning Materials" aria-label="Learning Materials">📚</button>
+      <button class="side-icon" data-pane="assignments" title="Assignments" aria-label="Assignments">📝</button>
+      <button class="side-icon" data-pane="grading" title="Grading" aria-label="Grading">🧮</button>
+      <button class="side-icon" data-pane="discussions" title="Discussions" aria-label="Discussions">💬</button>
+      <button class="side-icon" data-pane="announcements" title="Announcements" aria-label="Announcements">📣</button>
+      <button class="side-icon" data-pane="stats" title="Statistics" aria-label="Statistics">📊</button>
+    </aside>
+
+    <!-- Secondary materials nav (only shown on Materials pane) -->
+    <aside class="course-side materials-nav" id="materialsNav" aria-label="Materials list">
+      <div class="materials-header">
+        <h3 id="courseTitle">Course</h3>
+        <div id="teacherTools" class="teacher-tools hidden">
+          <label class="upload-label">
+            <input id="fileInput" type="file" accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" multiple hidden />
+            <span class="btn-primary">⤴︎ Upload</span>
+          </label>
+          <div class="btn-group">
+            <button id="seedDemoBtn" class="btn-secondary" type="button" title="Add two demo PDFs">⭐ Seed demo</button>
+            <button id="clearAllBtn" class="btn-secondary" type="button" title="Remove all materials">🧹 Clear all</button>
+          </div>
+        </div>
+      </div>
+
+      <ul id="materialsList" class="materials-list" role="listbox" aria-label="Materials"></ul>
+
+      <div class="materials-hint muted" id="materialsHint">
+        Add PDFs (inline viewing) or PPTX (download only).
+      </div>
+    </aside>
+
+    <!-- Main pane -->
+    <main class="course-main">
+      <!-- MATERIALS PANE -->
+      <section class="pane" id="pane-materials" aria-labelledby="tab-materials">
+        <header class="pane-header">
+          <div class="viewer-title">
+            <h2 id="materialTitle">Material</h2>
+            <span id="materialType" class="badge badge-new">PDF</span>
+          </div>
+          <div class="viewer-controls">
+            <button id="prevMat" class="btn-ghost" type="button" aria-label="Previous material">Prev</button>
+            <button id="nextMat" class="btn-ghost" type="button" aria-label="Next material">Next</button>
+            <button id="expandBtn" class="btn-ghost" type="button"
+            aria-label="Expand viewer" aria-pressed="false" title="Expand (E)">
+            ⤢
+            </button>
+            <!-- <div class="page-jump">
+              <label for="pageInput" class="sr-only">Go to page</label>
+              <input id="pageInput" class="input page-input" type="number" min="1" placeholder="Page #" />
+              <button id="goPage" class="btn-ghost" type="button">Go</button>
+            </div> -->
+          </div>
+        </header>
+
+        <div id="viewer" class="viewer">
+          <!-- PDF will load in iframe; PPTX shows a download panel -->
+        </div>
+      </section>
+
+      <!-- ASSIGNMENTS PANE -->
+      <section class="pane hidden" id="pane-assignments">
+        <h2>Assignments</h2>
+        <p class="muted">Coming soon.</p>
+      </section>
+
+      <!-- GRADING PANE -->
+      <section class="pane hidden" id="pane-grading">
+        <h2>Grading</h2>
+        <p class="muted">Coming soon.</p>
+      </section>
+
+      <!-- DISCUSSIONS PANE -->
+      <section class="pane hidden" id="pane-discussions">
+        <h2>Discussions</h2>
+        <p class="muted">Coming soon.</p>
+      </section>
+
+      <!-- ANNOUNCEMENTS PANE -->
+      <section class="pane hidden" id="pane-announcements">
+        <h2>Announcements</h2>
+        <p class="muted">Coming soon.</p>
+      </section>
+
+      <!-- STATISTICS PANE (teacher-only; JS toggles) -->
+      <section class="pane hidden" id="pane-stats" aria-labelledby="tab-stats">
+        <h2>Statistics</h2>
+        <div id="statsWrap" class="stats-grid">
+            <!-- Filled by JS -->
+        </div>
+      </section>
+    </main>
+  </section>
+
+    <script src="scripts/course.js" defer></script>
+    <script>
+        // Optional: elevate navbar on scroll
+        (function(){
+        var nav = document.querySelector('.navbar');
+        function onScroll(){ nav && nav.classList.toggle('scrolled', window.scrollY > 4); }
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        })();
+    </script>
+    <script>
+        (function(){
+            function setNavHeightVar(){
+            var nav = document.querySelector('.navbar');
+            var h = nav ? nav.getBoundingClientRect().height : 0;
+            // add the navbar’s outside margin (8–12px in your CSS). Adjust if you change nav margins.
+            document.documentElement.style.setProperty('--nav-h', (h + 12) + 'px');
+            }
+            window.addEventListener('resize', setNavHeightVar, { passive: true });
+            setNavHeightVar();
+        })();
+    </script>
+
+</body>
+</html>
