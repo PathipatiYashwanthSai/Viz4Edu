@@ -13,7 +13,11 @@
     var qpRole = (params.get('role') || '').toLowerCase();
     if (qpRole === 'student' || qpRole === 'teacher') { role = qpRole; try{ localStorage.setItem('viz4edu_role', role);}catch(e){} }
     var courseName = params.get('course') || 'Course';
-    document.getElementById('courseTitle').textContent = courseName;
+    var moduleName = params.get('module') || 'Module 1';
+    var courseTitleEl = document.getElementById('courseTitle');
+    if (courseTitleEl) {
+        courseTitleEl.textContent = courseName + ' — ' + moduleName;
+    }
 
     var roleChip = document.getElementById('roleChip');
     if (role === 'teacher') {
@@ -55,7 +59,7 @@
     var nextBtn = document.getElementById('nextMat');
 
     // ---------- storage for list ----------
-    var storeKey = 'viz4edu_materials_' + courseName;
+    var storeKey = 'viz4edu_materials_' + courseName + '__' + moduleName;
 
     // ------- Fullscreen support (with vendor fallbacks) -------
     function fsEnabled() {
@@ -132,7 +136,7 @@
     updateFsBtnState();
 
     // Persisted upload counter (per course)
-    var UPLOAD_COUNT_KEY = 'viz_uploaded_count_' + courseName;
+    var UPLOAD_COUNT_KEY = 'viz_uploaded_count_' + courseName + '__' + moduleName;
 
     function getUploadCount() {
         var v = parseInt(localStorage.getItem(UPLOAD_COUNT_KEY), 10);
@@ -332,7 +336,7 @@
             var f = files[i];
             var ext = (f.name.split('.').pop() || '').toLowerCase();
             var type = (ext === 'pdf') ? 'pdf' : 'pptx';
-            var key = courseName + '::' + Date.now() + '::' + f.name;
+            var key = courseName + '::' + moduleName + '::' + Date.now() + '::' + f.name;
             try { await idbPut(key, f); } catch(err) { console.warn('Store failed', err); }
             materials.push({ title: f.name.replace(/\.[^.]+$/,''), type: type, storeKey: key });
         }
@@ -355,7 +359,7 @@
             { title: 'Lecture2_BiometricsIntro', blob: tinyPdfBlob('Lecture 2 — Biometrics Intro\n' + courseName) }
         ];
         for (const d of demos) {
-            const key = courseName + '::demo::' + d.title + '::' + Date.now();
+            const key = courseName + '::' + moduleName + '::demo::' + d.title + '::' + Date.now();
             await idbPut(key, d.blob);
             materials.push({ title: d.title, type: 'pdf', storeKey: key });
         }

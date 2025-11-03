@@ -837,3 +837,84 @@ a { color: #a5b4fc; text-decoration: none; }
 @media (max-width: 1100px) {
   .stats-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
 }
+
+/* Modules page layout (very similar to dashboard) */
+.modules-page .page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px 0;
+}
+
+.modules-page .page-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.cards-wrap {
+  padding: 16px;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+  gap: 16px;
+}
+
+/* reuse course-card styling but we can slightly tweak if you want */
+.module-card {
+  cursor: pointer;
+  background: rgba(15,23,42,.6);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 16px;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(2,6,23,.6);
+}
+.module-card:hover {
+  border-color: rgba(99,102,241,.4);
+}
+
+.course-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+}
+
+.course-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+  word-break: break-word;
+}
+
+.course-card-sub {
+  margin: 0;
+  color: #94a3b8;
+  font-size: .8rem;
+  line-height: 1.4;
+}
+
+/* Teacher-only inline actions on each module card */
+.module-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.module-actions .btn-secondary {
+  font-size: .8rem;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
