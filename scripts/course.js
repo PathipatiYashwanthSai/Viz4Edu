@@ -30,6 +30,16 @@
         document.getElementById('brandHome').href = 'dashboard-student.html';
     }
 
+    // === Assignments storage keys (per course + module) ===
+    var ASMTS_KEY = 'viz4edu_assignments_' + courseName + '__' + moduleName;
+    // Submissions keyed by assignment id (per user). We'll mint a per-device user id:
+    var USER_ID_KEY = 'viz4edu_user_id';
+    var currentUserId = localStorage.getItem(USER_ID_KEY);
+    if (!currentUserId) {
+        currentUserId = 'u_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem(USER_ID_KEY, currentUserId);
+    }
+
     // ---------- elements ----------
     var courseShell = document.querySelector('.course-shell');
     var courseMain  = document.querySelector('.course-main');
@@ -38,7 +48,7 @@
     var primaryButtons = document.querySelectorAll('.course-side.primary .side-icon');
     var panes = {
         materials: document.getElementById('pane-materials'),
-        assignments: document.getElementById('pane-assignments'),
+        assignments: document.getElementById('assignmentsPane'),
         grading: document.getElementById('pane-grading'),
         discussions: document.getElementById('pane-discussions'),
         announcements: document.getElementById('pane-announcements'),
@@ -57,6 +67,37 @@
     var viewer = document.getElementById('viewer');
     var prevBtn = document.getElementById('prevMat');
     var nextBtn = document.getElementById('nextMat');
+
+    var assignmentsNav      = document.getElementById('assignmentsNav');
+    var assignmentsListEl   = document.getElementById('assignmentsList');
+    var assignmentsHint     = document.getElementById('assignmentsHint');
+    var asmtTeacherToolsSide= document.getElementById('asmtTeacherToolsSide');
+
+    // Assignments DOM
+    var assignmentsPane   = document.getElementById('assignmentsPane');
+    var asmtSummary       = document.getElementById('asmtSummary');
+    var asmtNewBtn        = document.getElementById('asmtNewBtn');
+    var asmtComposer      = document.getElementById('asmtComposer');
+    var asmtTitleInput    = document.getElementById('asmtTitle');
+    var asmtDueInput      = document.getElementById('asmtDue');
+    var asmtPdfInput      = document.getElementById('asmtPdf');
+    var asmtDescInput     = document.getElementById('asmtDesc');
+    var asmtSaveBtn       = document.getElementById('asmtSave');
+    var asmtCancelBtn     = document.getElementById('asmtCancel');
+    var asmtList          = document.getElementById('asmtList');
+
+    // Assignments detail viewer
+    var asmtDetail         = document.getElementById('asmtDetail');
+    var asmtDetailTitle    = document.getElementById('asmtDetailTitle');
+    var asmtDetailBadge    = document.getElementById('asmtDetailBadge');
+
+    var currentAsmtIndex   = -1;
+
+    if (role === 'teacher') {
+        asmtTeacherToolsSide && asmtTeacherToolsSide.classList.remove('hidden');
+    } else {
+        asmtTeacherToolsSide && asmtTeacherToolsSide.classList.add('hidden');
+    }
 
     // ---------- storage for list ----------
     var storeKey = 'viz4edu_materials_' + courseName + '__' + moduleName;
@@ -191,7 +232,6 @@
         return '';
     }
 
-
     function migrateLegacyBlobUrls(list) {
         if (!Array.isArray(list)) return [];
         var changed = false;
@@ -240,6 +280,276 @@
             '<div class="stat-label">' + label + '</div>' +
             '</div>'
         );
+    }
+
+    function timeAgo(ts){
+        var d = Date.now() - (ts||Date.now());
+        var mins = Math.floor(d/60000);
+        if (mins<1) return 'just now';
+        if (mins<60) return mins+'m ago';
+        var hrs = Math.floor(mins/60);
+        if (hrs<24) return hrs+'h ago';
+        var days = Math.floor(hrs/24);
+        if (days<30) return days+'d ago';
+        var months = Math.floor(days/30);
+        if (months<12) return months+'mo ago';
+        var years = Math.floor(months/12);
+        return years+'y ago';
+    }
+
+    function loadAssignments() {
+        try {
+            var raw = localStorage.getItem(ASMTS_KEY);
+            var arr = raw ? JSON.parse(raw) : [];
+            return Array.isArray(arr) ? arr : [];
+        } catch(e) { return []; }
+    }
+    function saveAssignments(list) {
+        try { localStorage.setItem(ASMTS_KEY, JSON.stringify(list)); } catch(e){}
+    }
+    function makeAsmtId() { return 'a_' + Date.now() + '_' + Math.floor(Math.random()*1e9); }
+
+    // Each assignment structure:
+    // { id, title, due (ISO or ''), desc, created, briefKey (IDB key for teacher PDF), submissionsCount }
+
+    // Submissions per assignment (per-user single latest):
+    // IDB key: course::module::assignmentId::submission::<userId>
+    function submissionKey(asmtId, userId) {
+        return courseName + '::' + moduleName + '::' + asmtId + '::submission::' + userId;
+    }
+    // Assignment brief (PDF) key:
+    function asmtBriefKey(asmtId, filename) {
+        return courseName + '::' + moduleName + '::' + asmtId + '::brief::' + filename;
+    }
+
+    var assignments = loadAssignments();
+
+    async function deleteAssignment(a){
+        if (!confirm('Delete this assignment?')) return;
+
+        // delete brief
+        try { if (a.briefKey) await idbDel(a.briefKey); } catch(e){}
+
+        // delete submissions blobs using the index
+        var idxKey = ASMTS_KEY + '::subidx::' + a.id;
+        var idx = []; try { idx = JSON.parse(localStorage.getItem(idxKey)||'[]'); } catch(e){}
+        for (const si of idx) { try { await idbDel(submissionKey(a.id, si.userId)); } catch(e){} }
+        localStorage.removeItem(idxKey);
+
+        // remove from array + persist + refresh UI
+        assignments = assignments.filter(x => x.id !== a.id);
+        saveAssignments(assignments);
+        updateAsmtSummary();
+        currentAsmtIndex = -1;
+        rebuildAssignmentsList();
+        renderAssignmentDetail(null);
+    }
+
+    function rebuildAssignmentsList(){
+        assignmentsListEl.innerHTML = '';
+        assignmentsHint.classList.toggle('hidden', assignments.length > 0);
+
+        assignments.forEach(function(a, idx){
+            var li = document.createElement('li');
+            li.className = 'materials-item' + (idx === currentAsmtIndex ? ' active' : '');
+            li.setAttribute('role','option'); li.setAttribute('tabindex','0');
+
+            var iconSpan  = document.createElement('span'); iconSpan.className='mi-icon';  iconSpan.textContent='📄';
+            var titleSpan = document.createElement('span'); titleSpan.className='mi-title'; titleSpan.textContent = a.title || ('Assignment ' + (idx+1));
+
+            li.appendChild(iconSpan); li.appendChild(titleSpan);
+
+            // (optional) teacher delete from list
+            if (role === 'teacher') {
+                var delBtn = document.createElement('button');
+                delBtn.className = 'mi-del'; delBtn.title='Delete';
+                delBtn.setAttribute('aria-label','Delete assignment');
+                delBtn.textContent='🗑️';
+                // delBtn.addEventListener('click', function(e){
+                //     e.stopPropagation();
+                //     if (!confirm('Delete this assignment?')) return;
+                //     // drop index + blobs (brief + submissions index only; student files kept unless you track all keys)
+                //     assignments.splice(idx,1);
+                //     saveAssignments(assignments);
+                //     currentAsmtIndex = -1;
+                //     rebuildAssignmentsList();
+                //     asmtDetail.innerHTML = '<p class="muted">Select an assignment from the left.</p>';
+                // });
+                delBtn.addEventListener('click', function(e){
+                    e.stopPropagation();
+                    deleteAssignment(a);
+                });
+                li.appendChild(delBtn);
+            }
+
+            li.addEventListener('click', function(){ selectAssignment(idx); });
+            li.addEventListener('keydown', function(e){
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectAssignment(idx); }
+            });
+
+            assignmentsListEl.appendChild(li);
+        });
+    }
+
+    function selectAssignment(idx){
+        currentAsmtIndex = Math.max(0, Math.min(idx, assignments.length-1));
+        Array.from(assignmentsListEl.children).forEach((li,i)=>li.classList.toggle('active', i===currentAsmtIndex));
+        renderAssignmentDetail(assignments[currentAsmtIndex]);
+    }
+
+    async function renderAssignmentDetail(a){
+        if (!a) {
+            asmtDetailTitle.textContent = 'Assignments';
+            asmtDetailBadge.hidden = true;
+            asmtDetail.innerHTML = '<p class="muted">Select an assignment from the left.</p>';
+            return;
+        }
+
+        asmtDetailTitle.textContent = a.title || 'Assignment';
+        asmtDetailBadge.hidden = false;
+
+        var dueTxt = a.due ? ('Due ' + new Date(a.due).toLocaleDateString()) : 'No due date';
+        var descHtml = a.desc ? ('<p class="asmt-desc">'+escapeHtml(a.desc)+'</p>') : '';
+
+        // View brief button
+        var briefBtn = `
+            <button class="btn-secondary" id="openBriefBtn">View brief</button>
+        `;
+
+        // Student upload box
+        var studentBox = '';
+        if (role !== 'teacher') {
+            studentBox = `
+            <div class="asmt-submission" style="margin-top:12px;">
+                <div class="row">
+                <label>Upload your submission (PDF/PPTX):</label>
+                <input id="studentSubmitFile" type="file" class="input-plain"
+                accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" />
+                <button id="studentSubmitBtn" class="btn-primary">Submit</button>
+                </div>
+                <div class="row" style="margin-top:6px;">
+                <span id="mineStatus" class="muted small">Checking status…</span>
+                <button class="btn-secondary" id="openMine" disabled>Open</button>
+                </div>
+            </div>`;
+        }
+
+        // Teacher submissions table
+        var teacherTable = '';
+        if (role === 'teacher') {
+            teacherTable = `
+            <table class="asmt-table" style="margin-top:12px;">
+                <thead><tr><th>Student</th><th>Submitted</th><th>File</th><th></th></tr></thead>
+                <tbody id="asmtSubsTBody"></tbody>
+            </table>`;
+        }
+
+        asmtDetail.innerHTML = `
+            <div class="asmt-card" style="border:0;padding:0;background:transparent;box-shadow:none;">
+            <div class="asmt-meta" style="margin:0 0 6px 0;">
+                <span class="asmt-badge">PDF</span>
+                <span>${dueTxt}</span>
+                <span>Posted ${timeAgo(a.created)}</span>
+            </div>
+            ${descHtml}
+            <div class="asmt-actions" style="margin-top:10px;">
+                ${briefBtn}
+                ${role==='teacher' ? '<button id="deleteAsmtBtn" class="btn-secondary">Delete</button>' : ''}
+            </div>
+            ${studentBox}
+            ${teacherTable}
+            </div>
+        `;
+
+        document.getElementById('deleteAsmtBtn')
+            ?.addEventListener('click', () => deleteAssignment(a));
+
+        // wire brief open
+        document.getElementById('openBriefBtn')?.addEventListener('click', async function(){
+            var blob = await idbGet(a.briefKey);
+            if (!blob) { alert('Brief not found.'); return; }
+            var url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            setTimeout(()=>URL.revokeObjectURL(url), 5000);
+        });
+
+        // student submission UI
+        if (role !== 'teacher') {
+            var fileInput = document.getElementById('studentSubmitFile');
+            var submitBtn = document.getElementById('studentSubmitBtn');
+            var mineStatus= document.getElementById('mineStatus');
+            var openMine  = document.getElementById('openMine');
+
+            async function refreshMine() {
+            var blob = await idbGet(submissionKey(a.id, currentUserId));
+            if (blob) {
+                mineStatus.textContent = 'Submitted';
+                openMine.disabled = false;
+            } else {
+                mineStatus.textContent = 'No submission yet.';
+                openMine.disabled = true;
+            }
+            }
+            refreshMine();
+
+            openMine.addEventListener('click', async function(){
+            var blob = await idbGet(submissionKey(a.id, currentUserId));
+            if (!blob) { alert('No submission found.'); return; }
+            var url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            setTimeout(()=>URL.revokeObjectURL(url), 5000);
+            });
+
+            submitBtn.addEventListener('click', async function(){
+            var f = (fileInput.files||[])[0];
+            if (!f) { alert('Choose a file first.'); return; }
+            await idbPut(submissionKey(a.id, currentUserId), f);
+
+            // update submissions index for teacher view
+            var idxKey = ASMTS_KEY + '::subidx::' + a.id;
+            var idx = []; try { idx = JSON.parse(localStorage.getItem(idxKey)||'[]'); } catch(e){}
+            var existing = idx.find(x => x.userId === currentUserId);
+            var rec = { userId: currentUserId, time: Date.now(), filename: f.name };
+            if (existing) Object.assign(existing, rec); else idx.push(rec);
+            localStorage.setItem(idxKey, JSON.stringify(idx));
+
+            fileInput.value = '';
+            refreshMine();
+            alert('Submitted!');
+            });
+        }
+
+        // teacher submissions table population
+        if (role === 'teacher') {
+            var tbody = document.getElementById('asmtSubsTBody');
+            var idxKey = ASMTS_KEY + '::subidx::' + a.id;
+            var subIdx = [];
+            try { subIdx = JSON.parse(localStorage.getItem(idxKey) || '[]'); } catch(e) { subIdx = []; }
+
+            if (!subIdx.length) {
+            var tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="4" class="muted">No submissions yet.</td>`;
+            tbody.appendChild(tr);
+            } else {
+            subIdx.sort((x,y)=>(y.time||0)-(x.time||0));
+            subIdx.forEach(function(si){
+                var tr = document.createElement('tr');
+                tr.innerHTML = `
+                <td>${si.userId}</td>
+                <td>${new Date(si.time).toLocaleString()}</td>
+                <td>${si.filename || 'submission'}</td>
+                <td><button class="btn-secondary btn-sm">Open</button></td>`;
+                tr.querySelector('button').addEventListener('click', async function(){
+                var blob = await idbGet(submissionKey(a.id, si.userId));
+                if (!blob) { alert('File missing.'); return; }
+                var url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                setTimeout(()=>URL.revokeObjectURL(url), 5000);
+                });
+                tbody.appendChild(tr);
+            });
+            }
+        }
     }
 
     // ---------- UI: list ----------
@@ -320,6 +630,7 @@
     function setActiveInList(){ materialsListEl.querySelectorAll('.materials-item').forEach((li,i)=>li.classList.toggle('active', i===currentIndex)); }
     async function loadMaterial(idx){
         if (!materials.length) return;
+        revokeObjectUrl(materials[currentIndex]);
         currentIndex = Math.max(0, Math.min(idx, materials.length - 1));
         setActiveInList();
         await renderViewer(materials[currentIndex]);
@@ -398,22 +709,43 @@
     // ---------- panes ----------
     primaryButtons.forEach(function(btn){
         btn.addEventListener('click', function(){
-        primaryButtons.forEach(function(b){ b.classList.remove('active'); });
-        btn.classList.add('active');
-        var pane = btn.dataset.pane;
-        Object.keys(panes).forEach(function(key){ panes[key].classList.toggle('hidden', key !== pane); });
-        materialsNav.classList.toggle('hidden', pane !== 'materials');
+            primaryButtons.forEach(function(b){ b.classList.remove('active'); });
+            btn.classList.add('active');
+            var pane = btn.dataset.pane;
+
+            Object.keys(panes).forEach(function(key){
+            panes[key].classList.toggle('hidden', key !== pane);
+            });
+
+            // Show only the relevant secondary sidebar
+            materialsNav.classList.toggle('hidden', pane !== 'materials');
+            assignmentsNav.classList.toggle('hidden', pane !== 'assignments');
+
+            // Render when opening assignments
+            if (pane === 'assignments') {
+            rebuildAssignmentsList();
+            // If nothing selected yet but there are assignments, open first
+            if (assignments.length && currentAsmtIndex < 0) { selectAssignment(0); }
+            }
         });
     });
 
+    // function showPane(id){
+    //     document.querySelectorAll('.pane').forEach(p=>p.classList.add('hidden'));
+    //     document.getElementById(id)?.classList.remove('hidden');
+    // }
+
     // ---------- Prev/Next ----------
-    prevBtn.addEventListener('click', function(){ if (currentIndex > 0) loadMaterial(currentIndex - 1); });
-    nextBtn.addEventListener('click', function(){ if (currentIndex < materials.length - 1) loadMaterial(currentIndex + 1); });
+    prevBtn && prevBtn.addEventListener('click', function(){ if (currentIndex > 0) loadMaterial(currentIndex - 1); });
+    nextBtn && nextBtn.addEventListener('click', function(){ if (currentIndex < materials.length - 1) loadMaterial(currentIndex + 1); });
 
     // ---------- init ----------
     rebuildList();
     renderStats();
     if (materials.length) { loadMaterial(0); } else { updateNavButtons(); }
+    // Assignments init
+    rebuildAssignmentsList();
+    if (assignments.length) { selectAssignment(0); }
 
     // ------- Demo PDF generator (minimal, valid PDF) -------
     function tinyPdfBlob(text){
@@ -444,4 +776,258 @@
     %%EOF`;
         return new Blob([content], { type: 'application/pdf' });
     }
+
+    function updateAsmtSummary() {
+        asmtSummary.textContent = assignments.length
+            ? assignments.length + ' assignment' + (assignments.length>1?'s':'')
+            : 'No assignments yet';
+    }
+
+    function openComposer() {
+        asmtTitleInput.value = '';
+        asmtDueInput.value = '';
+        asmtPdfInput.value = '';
+        asmtDescInput.value = '';
+        asmtComposer.classList.remove('hidden');
+        asmtTitleInput.focus();
+    }
+    function closeComposer() {
+        asmtComposer.classList.add('hidden');
+    }
+
+    async function renderAssignments() {
+        updateAsmtSummary();
+        asmtList.innerHTML = '';
+
+        if (!assignments.length) {
+            var empty = document.createElement('div');
+            empty.className = 'modules-empty';
+            empty.innerHTML = role === 'teacher'
+            ? `No assignments yet. <button class="btn-primary" id="asmtEmptyAdd">+ New Assignment</button>`
+            : `No assignments posted.`;
+            asmtList.appendChild(empty);
+            if (role === 'teacher') {
+            var btn = document.getElementById('asmtEmptyAdd');
+            btn && btn.addEventListener('click', () => openComposer());
+            }
+            return;
+        }
+
+        // newest first
+        assignments.sort((a,b)=>(b.created||0)-(a.created||0));
+
+        assignments.forEach(function(a){
+            var card = document.createElement('article');
+            card.className = 'asmt-card';
+
+            // header
+            var h3 = document.createElement('h3');
+            h3.textContent = a.title || 'Untitled assignment';
+            card.appendChild(h3);
+
+            // meta
+            var meta = document.createElement('div');
+            meta.className = 'asmt-meta';
+            var dueTxt = a.due ? ('Due ' + new Date(a.due).toLocaleDateString()) : 'No due date';
+            meta.innerHTML = `
+            <span class="asmt-badge">PDF</span>
+            <span>${dueTxt}</span>
+            <span>Posted ${timeAgo(a.created)}</span>
+            `;
+            card.appendChild(meta);
+
+            if (a.desc) {
+                var desc = document.createElement('div');
+                desc.className = 'asmt-desc';
+                desc.textContent = a.desc;
+                card.appendChild(desc);
+            }
+
+            // actions row (view brief, download)
+            var actions = document.createElement('div');
+            actions.className = 'asmt-actions';
+            var viewBtn = document.createElement('button');
+            viewBtn.type = 'button';
+            viewBtn.className = 'btn-secondary';
+            viewBtn.textContent = 'View brief';
+            viewBtn.addEventListener('click', async function(e){
+            e.stopPropagation();
+            var blob = await idbGet(a.briefKey);
+            if (!blob) { alert('Brief not found.'); return; }
+            var url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            setTimeout(()=>URL.revokeObjectURL(url), 5000);
+            });
+            actions.appendChild(viewBtn);
+
+            if (role === 'teacher') {
+                // teacher: edit/delete + submissions table
+                var del = document.createElement('button');
+                del.type = 'button'; del.className='btn-secondary'; del.textContent='Delete';
+                // del.addEventListener('click', async function(){
+                //     if (!confirm('Delete this assignment?')) return;
+                //     // Also clear students’ submissions blobs for this assignment
+                //     // (We cannot enumerate IDB keys easily without tracking; we’ll just remove metadata entry)
+                //     assignments = assignments.filter(x => x.id !== a.id);
+                //     saveAssignments(assignments);
+                //     renderAssignments();
+                // });
+                del.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteAssignment(a);
+                });
+                actions.appendChild(del);
+                card.appendChild(actions);
+
+                // submissions list
+                var table = document.createElement('table');
+                table.className = 'asmt-table';
+                table.innerHTML = `
+                    <thead><tr><th>Student</th><th>Submitted</th><th>File</th><th></th></tr></thead>
+                    <tbody></tbody>`;
+                var tbody = table.querySelector('tbody');
+
+                // Load a submissions index for this assignment (we'll store alongside assignment)
+                var idxKey = ASMTS_KEY + '::subidx::' + a.id;
+                var subIdx = [];
+                try { subIdx = JSON.parse(localStorage.getItem(idxKey) || '[]'); } catch(e) { subIdx = []; }
+
+                if (!subIdx.length) {
+                    var tr = document.createElement('tr');
+                    tr.innerHTML = `<td colspan="4" class="muted">No submissions yet.</td>`;
+                    tbody.appendChild(tr);
+                } else {
+                    subIdx.sort((x,y)=>(y.time||0)-(x.time||0));
+                    for (var i=0;i<subIdx.length;i++){
+                    (function(si){
+                        var tr = document.createElement('tr');
+                        tr.innerHTML = `
+                        <td>${si.userId}</td>
+                        <td>${new Date(si.time).toLocaleString()}</td>
+                        <td>${si.filename || 'submission'}</td>
+                        <td><button class="btn-secondary btn-sm">Open</button></td>`;
+                        var btn = tr.querySelector('button');
+                        btn.addEventListener('click', async function(){
+                        var blob = await idbGet(submissionKey(a.id, si.userId));
+                        if (!blob) { alert('File missing.'); return; }
+                        var url = URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                        setTimeout(()=>URL.revokeObjectURL(url), 5000);
+                        });
+                        tbody.appendChild(tr);
+                    })(subIdx[i]);
+                    }
+                }
+                card.appendChild(table);
+
+            } else {
+                // student: submit or view my submission
+                var subBox = document.createElement('div');
+                subBox.className = 'asmt-submission';
+                subBox.innerHTML = `
+                    <div class="row">
+                    <label>Upload your submission (PDF/PPTX):</label>
+                    <input type="file" class="input-plain" accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" />
+                    <button class="btn-primary">Submit</button>
+                    </div>
+                    <div class="row">
+                    <span id="mineStatus" class="muted small">No submission yet.</span>
+                    <button class="btn-secondary" id="openMine" disabled>Open</button>
+                    </div>
+                `;
+                var fileInput = subBox.querySelector('input[type="file"]');
+                var submitBtn = subBox.querySelector('.btn-primary');
+                var mineStatus = subBox.querySelector('#mineStatus');
+                var openMine   = subBox.querySelector('#openMine');
+
+                async function refreshMine() {
+                    var blob = await idbGet(submissionKey(a.id, currentUserId));
+                    if (blob) {
+                    mineStatus.textContent = 'Submitted';
+                    openMine.disabled = false;
+                    } else {
+                    mineStatus.textContent = 'No submission yet.';
+                    openMine.disabled = true;
+                    }
+                }
+                refreshMine();
+
+                openMine.addEventListener('click', async function(){
+                    var blob = await idbGet(submissionKey(a.id, currentUserId));
+                    if (!blob) { alert('No submission found.'); return; }
+                    var url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+                });
+
+                submitBtn.addEventListener('click', async function(){
+                    var f = (fileInput.files||[])[0];
+                    if (!f) { alert('Choose a file first.'); return; }
+                    await idbPut(submissionKey(a.id, currentUserId), f);
+                    // update submissions index (for teacher’s table)
+                    var idxKey = ASMTS_KEY + '::subidx::' + a.id;
+                    var idx = []; try { idx = JSON.parse(localStorage.getItem(idxKey)||'[]'); } catch(e){}
+                    var existing = idx.find(x => x.userId === currentUserId);
+                    var rec = { userId: currentUserId, time: Date.now(), filename: f.name };
+                    if (existing) Object.assign(existing, rec); else idx.push(rec);
+                    localStorage.setItem(idxKey, JSON.stringify(idx));
+                    fileInput.value='';
+                    refreshMine();
+                    alert('Submitted!');
+                });
+
+                card.appendChild(actions);
+                card.appendChild(subBox);
+            }
+
+            asmtList.appendChild(card);
+        });
+    }
+
+    // asmtNewBtn && asmtNewBtn.addEventListener('click', openComposer);
+    // asmtCancelBtn && asmtCancelBtn.addEventListener('click', closeComposer);
+
+    // asmtSaveBtn && asmtSaveBtn.addEventListener('click', async function(){
+    //     var title = (asmtTitleInput.value || '').trim();
+    //     var due   = asmtDueInput.value || '';
+    //     var desc  = (asmtDescInput.value || '').trim();
+    //     var pdf   = (asmtPdfInput.files || [])[0];
+
+    //     if (!pdf) { alert('Attach the assignment PDF.'); return; }
+    //     if (!title) title = pdf.name.replace(/\.pdf$/i,'');
+    //     var id = makeAsmtId();
+    //     var briefK = asmtBriefKey(id, pdf.name);
+    //     await idbPut(briefK, pdf);
+
+    //     var rec = { id, title, due, desc, created: Date.now(), briefKey: briefK, submissionsCount: 0 };
+    //     assignments.push(rec);
+    //     saveAssignments(assignments);
+
+    //     closeComposer();
+    //     renderAssignments();
+    // });
+
+    document.getElementById('asmtNewBtn')?.addEventListener('click', openComposer);
+    document.getElementById('asmtCancel')?.addEventListener('click', closeComposer);
+
+    document.getElementById('asmtSave')?.addEventListener('click', async function(){
+        var title = (document.getElementById('asmtTitle').value || '').trim();
+        var due   = document.getElementById('asmtDue').value || '';
+        var desc  = (document.getElementById('asmtDesc').value || '').trim();
+        var pdf   = (document.getElementById('asmtPdf').files || [])[0];
+
+        if (!pdf) { alert('Attach the assignment PDF.'); return; }
+        if (!title) title = pdf.name.replace(/\.pdf$/i,'');
+        var id = makeAsmtId();
+        var briefK = asmtBriefKey(id, pdf.name);
+        await idbPut(briefK, pdf);
+
+        var rec = { id, title, due, desc, created: Date.now(), briefKey: briefK, submissionsCount: 0 };
+        assignments.push(rec);
+        saveAssignments(assignments);
+
+        closeComposer();
+        rebuildAssignmentsList();
+        selectAssignment(assignments.length - 1);
+    });
 })();

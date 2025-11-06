@@ -1040,3 +1040,63 @@ a { color: #a5b4fc; text-decoration: none; }
   text-align: center;
   opacity: .95;
 }
+
+/* ===== Assignments ===== */
+.pane { display:flex; flex-direction:column; gap:12px; }
+.pane.hidden { display:none; }
+
+.pane-head {
+  display:flex; justify-content:space-between; align-items:flex-end; gap:12px;
+  padding:8px 12px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.pane-title { margin:0; color:#e2e8f0; font-weight:600; }
+
+.asmt-composer {
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px; padding:12px;
+  background: rgba(15,23,42,.6);
+}
+.asmt-form .form-row { display:flex; gap:10px; align-items:center; margin:8px 0; }
+.asmt-form .form-row > span { width:110px; color:#94a3b8; font-size:.9rem; }
+.asmt-form .form-actions { display:flex; gap:8px; justify-content:flex-end; }
+
+.asmt-list { display:grid; grid-template-columns: 1fr; gap:12px; }
+@media (min-width: 900px) {
+  .asmt-list { grid-template-columns: 1fr 1fr; }
+}
+
+.asmt-card {
+  position:relative;
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(15,23,42,.55);
+  border-radius:12px;
+  padding:12px;
+  box-shadow: 0 10px 30px rgba(2,6,23,.35);
+}
+.asmt-card h3 { margin:0 0 6px 0; color:#fff; font-size:1.05rem; }
+.asmt-meta { color:#94a3b8; font-size:.85rem; display:flex; gap:12px; flex-wrap:wrap; }
+.asmt-desc { color:#cbd5e1; font-size:.9rem; margin-top:8px; }
+
+.asmt-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.asmt-actions .btn-secondary { height:32px; }
+
+.asmt-submission {
+  margin-top:10px; padding:10px; border-radius:10px;
+  background: rgba(2,6,23,.5); border:1px solid rgba(255,255,255,.08);
+}
+.asmt-submission .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.asmt-submission .row label { color:#94a3b8; font-size:.85rem; }
+
+.asmt-table { width:100%; border-collapse: collapse; margin-top:10px; }
+.asmt-table th, .asmt-table td {
+  border-bottom:1px solid rgba(255,255,255,.08);
+  text-align:left; padding:8px 6px; font-size:.9rem; color:#cbd5e1;
+}
+.asmt-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:3px 8px; border-radius:999px;
+  background: rgba(99,102,241,.22);
+  border:1px solid rgba(99,102,241,.35);
+  color:#e5e7eb; font-size:.75rem;
+}

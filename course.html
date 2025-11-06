@@ -23,7 +23,7 @@
     <!-- Primary icon nav -->
     <aside class="course-side primary" aria-label="Course sections">
       <button class="side-icon active" data-pane="materials" title="Learning Materials" aria-label="Learning Materials">📚</button>
-      <button class="side-icon" data-pane="assignments" title="Assignments" aria-label="Assignments">📝</button>
+      <button id="nav-assignments" class="side-icon primary" data-pane="assignments" title="Assignments" aria-controls="assignmentsPane">📄</button>
       <button class="side-icon" data-pane="grading" title="Grading" aria-label="Grading">🧮</button>
       <button class="side-icon" data-pane="discussions" title="Discussions" aria-label="Discussions">💬</button>
       <button class="side-icon" data-pane="announcements" title="Announcements" aria-label="Announcements">📣</button>
@@ -50,6 +50,22 @@
 
       <div class="materials-hint muted" id="materialsHint">
         Add PDFs (inline viewing) or PPTX (download only).
+      </div>
+    </aside>
+
+    <!-- Secondary assignments nav (only shown on Assignments pane) -->
+    <aside class="course-side materials-nav hidden" id="assignmentsNav" aria-label="Assignments list">
+      <div class="materials-header">
+        <h3>Assignments</h3>
+        <div id="asmtTeacherToolsSide" class="teacher-tools hidden">
+          <button id="asmtNewBtn" class="btn-primary">+ New Assignment</button>
+        </div>
+      </div>
+
+      <ul id="assignmentsList" class="materials-list" role="listbox" aria-label="Assignments"></ul>
+
+      <div class="materials-hint muted" id="assignmentsHint">
+        No assignments yet.
       </div>
     </aside>
 
@@ -83,10 +99,49 @@
       </section>
 
       <!-- ASSIGNMENTS PANE -->
-      <section class="pane hidden" id="pane-assignments">
-        <h2>Assignments</h2>
-        <p class="muted">Coming soon.</p>
+      <section id="assignmentsPane" class="pane hidden" aria-labelledby="nav-assignments">
+        <header class="pane-header">
+          <div class="viewer-title">
+            <h2 id="asmtDetailTitle">Assignments</h2>
+            <span id="asmtDetailBadge" class="badge badge-new" hidden>PDF</span>
+          </div>
+          <div class="viewer-controls" id="asmtHeaderControls">
+            <!-- optional space for future actions -->
+          </div>
+        </header>
+
+        <!-- Teacher inline composer (same fields, just moved below header) -->
+        <div id="asmtComposer" class="asmt-composer hidden" style="margin: 8px 12px;">
+          <div class="asmt-form">
+            <label class="form-row">
+              <span>Title</span>
+              <input id="asmtTitle" class="input-plain" type="text" placeholder="e.g., Homework 1" />
+            </label>
+            <label class="form-row">
+              <span>Due date</span>
+              <input id="asmtDue" class="input-plain" type="date" />
+            </label>
+            <label class="form-row">
+              <span>PDF brief</span>
+              <input id="asmtPdf" class="input-plain" type="file" accept="application/pdf" />
+            </label>
+            <label class="form-row">
+              <span>Description (optional)</span>
+              <textarea id="asmtDesc" class="input-plain" rows="3" placeholder="Short instructions…"></textarea>
+            </label>
+            <div class="form-actions">
+              <button id="asmtSave" class="btn-primary">Publish</button>
+              <button id="asmtCancel" class="btn-secondary">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Assignment detail viewer -->
+        <div id="asmtDetail" class="pptx-panel" style="margin: 8px 12px;">
+          <p class="muted">Select an assignment from the left.</p>
+        </div>
       </section>
+
 
       <!-- GRADING PANE -->
       <section class="pane hidden" id="pane-grading">
