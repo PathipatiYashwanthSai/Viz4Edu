@@ -6,12 +6,10 @@
   <title>Viz4Edu — Modules</title>
   <link rel="stylesheet" href="viz4edu.css" />
 </head>
-
 <body class="modules-page">
   <!-- NAVBAR -->
   <nav class="navbar" role="navigation" aria-label="Main">
     <div class="nav-left">
-      <!-- clicking brand should go back to correct dashboard based on role -->
       <a href="#" class="brand-link" id="modulesBrandHome">Viz4Edu</a>
       <span class="role-chip" id="modulesRoleChip">Role</span>
     </div>
@@ -20,32 +18,63 @@
     </div>
   </nav>
 
-  <!-- PAGE HEADER -->
+  <!-- HERO / PAGE HEAD -->
   <header class="page-head">
     <div class="ph-left">
       <h1 class="page-title" id="modulesCourseTitle">Course Name</h1>
-      <p class="muted small">Modules</p>
+      <div class="module-meta" id="modulesSummary"><!-- filled by JS --></div>
     </div>
 
-    <div class="ph-right" id="moduleTools" class="hidden">
-      <!-- Teacher-only controls -->
-      <button id="addModuleBtn" class="btn-primary">+ Add Module</button>
+    <div class="ph-right">
+      <!-- Toolbar -->
+      <div class="modules-toolbar">
+        <div class="toolbar-left">
+          <input id="moduleSearch" class="input-plain" type="search" placeholder="Search modules…" aria-label="Search modules" />
+          <select id="moduleSort" class="input-plain" aria-label="Sort modules">
+            <option value="newest">Newest</option>
+            <option value="az">A–Z</option>
+            <option value="za">Z–A</option>
+          </select>
+        </div>
+        <div class="toolbar-right" id="moduleTools" class="hidden">
+          <button id="addModuleBtn" class="btn-primary">+ Add Module</button>
+        </div>
+      </div>
     </div>
   </header>
 
   <!-- MODULES GRID -->
   <main class="cards-wrap">
     <section class="cards-grid" id="modulesGrid" aria-label="Modules list">
-      <!-- Filled by modules.js -->
+      <!-- skeleton placeholders (brief) -->
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
     </section>
   </main>
 
-  <!-- Simple modal-like inline UI for rename/delete (teacher only).
-       We'll just reuse prompt() / confirm() to keep code minimal for now. -->
+  <!-- Empty state template -->
+  <template id="modulesEmptyTpl">
+    <div class="modules-empty">
+      No modules found.
+      <button class="btn-primary" id="emptyAdd">+ Add Module</button>
+    </div>
+  </template>
+
+  <!-- Small confirm modal -->
+  <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
+    <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h3 id="confirmTitle">Confirm</h3>
+      <p id="confirmMsg">Are you sure?</p>
+      <div class="confirm-actions">
+        <button id="confirmCancel" class="btn-secondary">Cancel</button>
+        <button id="confirmOK" class="btn-primary">Delete</button>
+      </div>
+    </div>
+  </div>
 
   <script src="scripts/modules.js" defer></script>
   <script>
-    // navbar shadow on scroll if you already do this elsewhere
     (function(){
       var nav=document.querySelector('.navbar');
       function onScroll(){ nav && nav.classList.toggle('scrolled', window.scrollY>4); }

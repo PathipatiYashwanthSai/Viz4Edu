@@ -838,83 +838,205 @@ a { color: #a5b4fc; text-decoration: none; }
   .stats-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
 }
 
-/* Modules page layout (very similar to dashboard) */
+/* ---------- HERO / Page head ---------- */
 .modules-page .page-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px 0;
+  margin: 8px 12px 0;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, rgba(99,102,241,.20), rgba(99,102,241,0) 70%);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 12px;
 }
-
 .modules-page .page-title {
   font-size: 1.25rem;
   font-weight: 600;
   color: #e2e8f0;
-  margin: 0;
-  line-height: 1.2;
+  margin: 0 0 4px 0;
+}
+.modules-page .module-meta { display:flex; gap: 12px; align-items:center; color:#cbd5e1; }
+
+/* ---------- Toolbar ---------- */
+.modules-toolbar {
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end;
+}
+.modules-toolbar .toolbar-left { display:flex; gap:8px; align-items:center; }
+.input-plain {
+  height:36px; padding:0 10px; border-radius:8px;
+  border:1px solid rgba(255,255,255,.12); background: rgba(2,6,23,.6); color:#e5e7eb;
 }
 
-.cards-wrap {
-  padding: 16px;
-}
-
+/* ---------- Cards grid ---------- */
+.cards-wrap { padding: 16px; }
 .cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
 }
 
-/* reuse course-card styling but we can slightly tweak if you want */
+/* ---------- Module card polish ---------- */
+.module-chip {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 10px; border-radius:999px;
+  background: linear-gradient(90deg, rgba(99,102,241,.2), rgba(56,189,248,.15));
+  border: 1px solid rgba(255,255,255,.12);
+  font-size:.78rem; color:#e5e7eb;
+}
+.module-meta { display:flex; gap:10px; align-items:center; color:#94a3b8; font-size:.82rem; }
+
 .module-card {
-  cursor: pointer;
+  position:relative;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
   background: rgba(15,23,42,.6);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 14px;
   padding: 16px;
-  min-height: 140px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 40px rgba(2,6,23,.6);
+  min-height: 160px;
+  display:flex; flex-direction:column;
+  box-shadow: 0 10px 30px rgba(2,6,23,.45);
 }
-.module-card:hover {
-  border-color: rgba(99,102,241,.4);
-}
+.module-card:hover { transform: translateY(-2px); border-color: rgba(99,102,241,.45); box-shadow: 0 16px 40px rgba(2,6,23,.6); }
+.module-card:focus-within { box-shadow: 0 0 0 2px rgba(99,102,241,.5), 0 10px 30px rgba(2,6,23,.45); }
 
-.course-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1 1 auto;
-}
+.course-card-body { display:flex; flex-direction:column; gap:8px; flex:1 1 auto; }
+.course-card-title { font-size: 1rem; font-weight: 600; color: #fff; margin: 0; word-break: break-word; }
 
-.course-card-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
-  margin: 0;
-  word-break: break-word;
-}
-
-.course-card-sub {
-  margin: 0;
-  color: #94a3b8;
-  font-size: .8rem;
-  line-height: 1.4;
-}
-
-/* Teacher-only inline actions on each module card */
+/* Hover actions */
 .module-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: auto;
+  display:flex; gap:8px; margin-top:auto; opacity:0;
+  transition: opacity .16s ease;
+}
+.module-card:hover .module-actions { opacity:1; }
+
+/* Kebab menu button */
+.module-kebab {
+  position:absolute; top:10px; right:10px;
+  width:32px; height:32px; display:grid; place-items:center;
+  border-radius:8px; border:1px solid rgba(255,255,255,.12);
+  background: rgba(2,6,23,.55); color:#e5e7eb; opacity:.0;
+  transition: opacity .16s ease, border-color .16s ease;
+}
+.module-card:hover .module-kebab { opacity:1; }
+.module-kebab:hover { border-color: rgba(99,102,241,.45); }
+
+/* Buttons */
+.btn-primary, .btn-secondary {
+  display:inline-flex; align-items:center; justify-content:center;
+  height:36px; padding:0 12px; line-height:1; white-space:nowrap;
+  border-radius:10px; border:1px solid rgba(99,102,241,.35);
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .02s ease;
+}
+.btn-primary { background: rgba(99,102,241,.25); color:#e5e7eb; box-shadow: 0 2px 10px rgba(2,6,23,.25), inset 0 1px 0 rgba(255,255,255,.06); }
+.btn-primary:hover { background: rgba(99,102,241,.35); border-color: rgba(99,102,241,.48); }
+.btn-secondary { background: rgba(99,102,241,.12); color:#e5e7eb; }
+.btn-secondary:hover { background: rgba(99,102,241,.18); border-color: rgba(99,102,241,.48); }
+.btn-secondary:active, .btn-primary:active { transform: translateY(1px); }
+
+/* Empty & skeleton */
+.modules-empty {
+  grid-column: 1 / -1;
+  border:1px dashed rgba(255,255,255,.2);
+  background: rgba(15,23,42,.4);
+  border-radius:14px; padding:24px; text-align:center; color:#94a3b8;
+}
+.skeleton-card {
+  height:160px; border-radius:14px;
+  background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.1), rgba(255,255,255,.05));
+  background-size: 200% 100%; animation: shimmer 1.2s infinite linear;
+}
+@keyframes shimmer { 0%{background-position: 200% 0} 100%{background-position: -200% 0} }
+
+/* Confirm modal */
+.confirm-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  display: grid; place-items: center; z-index: 50;
+}
+.confirm-overlay.hidden { display: none; }
+.confirm-modal {
+  width: min(420px, 92vw);
+  background: rgba(15,23,42,.95);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  padding: 16px;
+  color: #e5e7eb;
+  box-shadow: 0 30px 60px rgba(0,0,0,.55);
+}
+.confirm-modal h3 { margin: 0 0 8px 0; font-size: 1.05rem; }
+.confirm-actions { display:flex; gap:8px; justify-content:flex-end; margin-top: 12px; }
+
+/* Kebab popover menu */
+.menu-pop {
+  position: absolute;
+  z-index: 60;
+  min-width: 160px;
+  padding: 6px;
+  border-radius: 10px;
+  background: rgba(15,23,42,.98);
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 20px 50px rgba(0,0,0,.55);
+}
+.menu-pop.hidden { display: none; }
+
+.menu-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px;
+  color: #e5e7eb; cursor: pointer; line-height: 1;
+}
+/* before you had: .menu-item:hover, .menu-item:focus { ... } */
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: rgba(99,102,241,.22);
+  color: #ffffff;
+  outline: none;
 }
 
-.module-actions .btn-secondary {
-  font-size: .8rem;
-  line-height: 1;
-  padding: 6px 10px;
+.menu-sep { height: 1px; margin: 6px 4px; background: rgba(255,255,255,.10); }
+.menu-item .mi-icon { width: 16px; text-align: center; }
+
+/* Normalize menu buttons (ensure dark background + readable text) */
+.menu-pop {
+  background: rgba(15,23,42,.98);
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 20px 50px rgba(0,0,0,.55);
+}
+
+.menu-item {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  color: #e5e7eb;          /* readable by default */
+  padding: 8px 10px;
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* .menu-item:hover,
+.menu-item:focus {
+  background: rgba(99,102,241,.22);
+  color: #ffffff;
+  outline: none;
+} */
+
+/* keep plain focus from styling, but remove outline */
+.menu-item:focus { outline: none; background: transparent; color: #e5e7eb; }
+
+.menu-item:active {
+  transform: translateY(1px);
+}
+
+.menu-sep {
+  height: 1px;
+  margin: 6px 4px;
+  background: rgba(255,255,255,.10);
+}
+
+.menu-item .mi-icon {
+  width: 16px;
+  text-align: center;
+  opacity: .95;
 }
